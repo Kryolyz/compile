@@ -37,6 +37,7 @@ import {
     deleteCardMessage,
     returnAllCardsMessage,
 } from '../logic/utils/logMessages';
+import { isGameLoggingEnabled, startGameLog, traceGameState } from '../logic/utils/gameLogger';
 // NOTE: Hate-3 trigger is now handled via custom protocol reactive effects
 
 // NOTE: processCompileAnimations moved to aiAnimationCreators.ts (DRY - central animation helpers)
@@ -62,8 +63,24 @@ export const useGameState = (
 
     const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
+    // DEV-ONLY: full-info game logging to game-logs/ for AI analysis.
+    // Enabled with `npm run dev`; disable via localStorage.setItem('gameLogging', 'off').
+    const gameLogStartedRef = useRef(false);
+    useEffect(() => {
+        if (!isGameLoggingEnabled()) return;
+        if (!gameLogStartedRef.current) {
+            gameLogStartedRef.current = true;
+            startGameLog(gameState, difficulty);
+        } else {
+            traceGameState(gameState);
+        }
+    }, [gameState, difficulty]);
+
     // Ref-based lock to prevent race conditions between AI processing hooks
     const isProcessingAIRef = useRef<boolean>(false);
+
+    // ANTI-SOFTLOCK: tracks repeats of identical (by content) pending AI actions
+    const aiActionRepeatRef = useRef<{ key: string | null; count: number }>({ key: null, count: 0 });
 
     // Scenario version counter - increments on each scenario change to invalidate old timers
     const scenarioVersionRef = useRef<number>(0);
@@ -1527,8 +1544,28 @@ export const useGameState = (
             isProcessingAIRef.current = true;
 
             setGameState(prevState => {
+                const actionBefore = prevState.actionRequired;
+
+                // ANTI-SOFTLOCK (content-based): some broken paths RECREATE an
+                // identical actionRequired each round, so reference checks never
+                // fire. Track repeats by content and force-clear after 10.
+                const actionKey = actionBefore ? JSON.stringify(actionBefore) : null;
+                if (actionKey && actionKey === aiActionRepeatRef.current.key) {
+                    aiActionRepeatRef.current.count++;
+                } else {
+                    aiActionRepeatRef.current = { key: actionKey, count: 0 };
+                }
+                if (aiActionRepeatRef.current.count >= 10) {
+                    console.error('[AI] Action repeated 10x without progress, force-clearing to prevent softlock:', (actionBefore as any)?.type);
+                    aiActionRepeatRef.current = { key: null, count: 0 };
+                    let cleared = resolvers.skipAction(prevState);
+                    if (cleared.actionRequired === actionBefore) {
+                        cleared = { ...cleared, actionRequired: null };
+                    }
+                    return cleared;
+                }
                 // handleRequiredActionSync processes ONE action and returns new state
-                return aiManager.handleRequiredActionSync(
+                let nextState = aiManager.handleRequiredActionSync(
                     prevState,
                     difficulty,
                     {
@@ -1556,6 +1593,19 @@ export const useGameState = (
                     phaseManager,
                     enqueueAnimation
                 );
+
+                // ANTI-SOFTLOCK: If the AI handler made NO progress (the exact same
+                // actionRequired is still pending), force-skip it. Otherwise this
+                // effect never re-fires (state is unchanged) and the game hangs.
+                if (nextState.actionRequired && nextState.actionRequired === actionBefore) {
+                    console.error('[AI] No progress on action, forcing skip to prevent softlock:', actionBefore?.type);
+                    nextState = resolvers.skipAction(nextState);
+                    // skipAction only clears OPTIONAL actions - hard-clear as last resort
+                    if (nextState.actionRequired === actionBefore) {
+                        nextState = { ...nextState, actionRequired: null };
+                    }
+                }
+                return nextState;
             });
 
             isProcessingAIRef.current = false;

@@ -205,7 +205,41 @@ export const discardCards = (prevState: GameState, cardIds: string[], player: Pl
     const playerState = prevState[player];
     const cardsToDiscardSet = new Set(cardIds);
     const discardedCards = playerState.hand.filter(c => cardsToDiscardSet.has(c.id));
-    if (discardedCards.length === 0) return prevState;
+
+    if (discardedCards.length === 0) {
+        // CRITICAL ANTI-SOFTLOCK: A pending discard whose actor has NO cards
+        // in hand must COMPLETE (skip + follow-up), never stay pending.
+        // Returning prevState unchanged here soft-locked the game, because
+        // nothing ever resolved the still-pending actionRequired.
+        // NOTE: With cards in hand an empty selection stays pending - variable
+        // discards ("discard 1 or more") require at least `count` cards.
+        const pendingDiscard = prevState.actionRequired?.type === 'discard' ? prevState.actionRequired : null;
+        const isEmptyHandCompletion = pendingDiscard
+            && pendingDiscard.actor === player
+            && playerState.hand.length === 0;
+
+        if (!isEmptyHandCompletion) return prevState;
+
+        let newState: GameState = { ...prevState, actionRequired: null };
+        const playerName = player === 'player' ? 'Player' : 'Opponent';
+        newState = log(newState, player, `${playerName} has no cards to discard - effect skipped.`);
+
+        // Follow-up effects still resolve: "then" always runs (Plague-2:
+        // "your opponent discards X+1" with X=0), "if_executed" is skipped
+        // inside executeFollowUpAfterDiscard because discardedCount is 0.
+        if ((pendingDiscard as any).followUpEffect && pendingDiscard.sourceCardId) {
+            return executeFollowUpAfterDiscard(
+                newState,
+                (pendingDiscard as any).followUpEffect,
+                (pendingDiscard as any).conditionalType,
+                (pendingDiscard as any).previousHandSize,
+                pendingDiscard.sourceCardId,
+                player,
+                newState._logIndentLevel || 2
+            );
+        }
+        return newState;
+    }
 
     // Create discard animation requests BEFORE state change (DRY - single place for discard animations)
     // Store handIndex, cardSnapshot, AND preDiscardHand so animation can create sequential snapshots

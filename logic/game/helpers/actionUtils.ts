@@ -12,7 +12,7 @@ import { executeOnCoverEffect, executeOnPlayEffect } from '../../effectExecutor'
 import { canFlipCard, canShiftCard } from '../passiveRuleChecker';
 import { processReactiveEffects } from '../reactiveEffectProcessor';
 import { executeCustomEffect } from '../../customProtocols/effectInterpreter';
-import { queuePendingCustomEffects } from '../phaseManager';
+import { queuePendingCustomEffects, queueActionWithPendingEffects } from '../phaseManager';
 import { rememberFlippedCard } from '../../ai/cardMemory';
 import { createFlipAnimation, enqueueAnimationsFromRequests } from '../../animation/animationHelpers';
 import { flipCardMessage } from '../../utils/logMessages';
@@ -501,22 +501,10 @@ export function handleUncoverEffect(state: GameState, owner: Player, laneIndex: 
             if (state._interruptedTurn) {
                 // ...and the new action is for the ORIGINAL turn player...
                 if (newActionActor === state._interruptedTurn) {
-                    // CRITICAL FIX: When queueing the actionRequired, we need to:
-                    // 1. First queue the actionRequired (e.g., flip)
-                    // 2. THEN queue the pending effects (e.g., shift)
-                    // This ensures the flip happens before the shift!
-                    const currentAction = result.newState.actionRequired;
-                    result.newState.actionRequired = null;
-
-                    // Queue the current action FIRST
-                    result.newState.queuedActions = [
-                        ...(result.newState.queuedActions || []),
-                        currentAction
-                    ];
-
-                    // THEN queue pending custom effects (they come AFTER the current action)
-                    result.newState = queuePendingCustomEffects(result.newState);
-
+                    // CRITICAL FIX: The actionRequired (e.g., Time-0's "play from trash")
+                    // must resolve BEFORE the pending effects (e.g., "shuffle trash").
+                    // queueActionWithPendingEffects guarantees this order in the queue.
+                    result.newState = queueActionWithPendingEffects(result.newState);
                     return result;
                 }
             }
@@ -935,12 +923,10 @@ export const handleOnFlipToFaceUp = (state: GameState, cardId: string): EffectRe
             // ...and the new action is for the ORIGINAL turn player...
             if (newActionActor === state._interruptedTurn) {
                 // ...queue the action instead of creating a nested interrupt.
-                result.newState.queuedActions = [
-                    ...(result.newState.queuedActions || []),
-                    result.newState.actionRequired
-                ];
-                result.newState = queuePendingCustomEffects(result.newState);
-                result.newState.actionRequired = null;
+                // CRITICAL FIX: The actionRequired (e.g., Luck-0's "state a number")
+                // must resolve BEFORE the pending effects (e.g., "draw 3 and reveal").
+                // queueActionWithPendingEffects guarantees this order in the queue.
+                result.newState = queueActionWithPendingEffects(result.newState);
                 return result;
             }
         }

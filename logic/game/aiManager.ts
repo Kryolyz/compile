@@ -6,8 +6,7 @@
 import { GameState, ActionRequired, AIAction, Player, Difficulty, EffectResult, AnimationRequest, EffectContext, GamePhase, PlayedCard } from '../../types';
 import { easyAI } from '../ai/easy';
 import { normalAI } from '../ai/normal';
-// TEMPORARILY DISABLED: hardAI is being completely rewritten
-// import { hardAI } from '../ai/hardImproved';
+import { hardAI } from '../ai/hard';
 import * as resolvers from './resolvers';
 import { executeOnPlayEffect } from '../effectExecutor';
 import { findCardOnBoard } from './helpers/actionUtils';
@@ -75,8 +74,7 @@ const getAIAction = (state: GameState, action: ActionRequired | null, difficulty
         case 'normal':
             return normalAI(state, action);
         case 'hard':
-            // TEMPORARILY: Hard AI falls back to normal AI until rewritten
-            return normalAI(state, action);
+            return hardAI(state, action);
         default:
             return easyAI(state, action);
     }
@@ -305,7 +303,8 @@ export const handleRequiredActionSync = (
         } else {
             const target = choice;
             const actorName = 'Opponent';
-            const targetName = target === 'opponent' ? "the player's" : "their own";
+            // target is the SIDE whose protocols get rearranged: 'opponent' = the AI itself
+            const targetName = target === 'opponent' ? "their own" : "the player's";
             let stateWithChoice = log(state, actor, `${actorName} chooses to rearrange ${targetName} protocols.`);
             stateWithChoice.actionRequired = {
                 type: 'prompt_rearrange_protocols',
@@ -320,7 +319,11 @@ export const handleRequiredActionSync = (
 
     // --- PLAY CARD FROM HAND (Speed-0, Darkness-3) ---
     if (aiDecision.type === 'playCard' && action.type === 'select_card_from_hand_to_play') {
-        const { cardId, laneIndex, isFaceUp } = aiDecision;
+        const { cardId, laneIndex } = aiDecision;
+
+        // RULE GUARD: The effect may FORCE face-down play (Darkness-3:
+        // "play 1 card face-down"). Never let an AI decision override that.
+        const isFaceUp = (action as any).faceDown === true ? false : aiDecision.isFaceUp;
 
         // DRY: Create play animation BEFORE state change using centralized helper
         createAndEnqueuePlayAnimation(state, cardId, laneIndex, isFaceUp, 'opponent', enqueueAnimation, true);
@@ -504,6 +507,13 @@ export const runOpponentTurnSync = (
     let iterations = 0;
     const MAX_ITERATIONS = 50;
 
+    // ANTI-SOFTLOCK: Track repeats of the same pending action type. Legit
+    // chains repeat a type a few times (multi-flip, multi-delete), but 8+
+    // repeats without resolution means the AI is stuck in a ping-pong.
+    let lastActionKey: string | null = null;
+    let sameActionRepeats = 0;
+    const MAX_SAME_ACTION_REPEATS = 8;
+
     while (iterations < MAX_ITERATIONS) {
         iterations++;
 
@@ -529,10 +539,45 @@ export const runOpponentTurnSync = (
                 return state;
             }
 
+            // ANTI-SOFTLOCK: Detect ping-pong on the same action type. Some
+            // broken paths recreate an identical actionRequired each iteration,
+            // so reference equality alone is not enough.
+            const actionKey = `${action.type}|${(action as any).actor ?? ''}`;
+            sameActionRepeats = actionKey === lastActionKey ? sameActionRepeats + 1 : 0;
+            lastActionKey = actionKey;
+            if (sameActionRepeats >= MAX_SAME_ACTION_REPEATS) {
+                console.error('[AI] Action stuck in a loop, forcing skip to prevent softlock:', action.type);
+                state = actions.skipAction({ ...state });
+                if (state.actionRequired && (state.actionRequired as any).type === action.type) {
+                    // skipAction couldn't clear it - drop it as last resort
+                    state = { ...state, actionRequired: null };
+                }
+                lastActionKey = null;
+                sameActionRepeats = 0;
+                continue;
+            }
+
             // Handle opponent action synchronously
+            const actionBefore = state.actionRequired;
             state = handleRequiredActionSync(state, difficulty, actions, phaseManager, enqueueAnimation);
+
+            // ANTI-SOFTLOCK: If the handler made NO progress (the exact same
+            // actionRequired is still pending), force-skip it. Otherwise this
+            // loop spins until MAX_ITERATIONS and the game hangs.
+            if (state.actionRequired && state.actionRequired === actionBefore) {
+                console.error('[AI] No progress on action, forcing skip to prevent softlock:', actionBefore?.type);
+                state = actions.skipAction(state);
+                // skipAction only clears OPTIONAL actions - hard-clear as last resort
+                if (state.actionRequired === actionBefore) {
+                    state = { ...state, actionRequired: null };
+                }
+            }
             continue; // Loop back to check for more actions
         }
+
+        // No pending action - reset the same-action repeat tracking
+        lastActionKey = null;
+        sameActionRepeats = 0;
 
         // 3. Handle compile phase
         if (state.phase === 'compile' && state.compilableLanes.length > 0) {

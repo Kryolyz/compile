@@ -26,6 +26,11 @@ export function executeStateNumberEffect(
 
     let newState = { ...state };
 
+    // CRITICAL: Invalidate any previously stated number. A new "state a number"
+    // effect must always ask for a fresh number - subsequent effects must never
+    // accidentally reuse a stale value from an earlier trigger.
+    newState.lastStatedNumber = undefined;
+
     // Set actionRequired for player to choose a number
     newState.actionRequired = {
         type: 'state_number',

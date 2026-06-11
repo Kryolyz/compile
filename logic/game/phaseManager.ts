@@ -288,6 +288,31 @@ export function queuePendingCustomEffects(state: GameState): GameState {
 }
 
 /**
+ * Queues the current actionRequired together with any pending custom effects
+ * in the CORRECT order: the action resolves FIRST, then the remaining effects.
+ *
+ * Used when an interrupt is already in progress and a new action for the
+ * interrupted player must wait (e.g. Time-0 uncovered during an interrupt:
+ * "play from trash" must resolve BEFORE "shuffle trash").
+ *
+ * NOTE: queuePendingCustomEffects PREPENDS to the queue, so we queue the
+ * pending effects first and then put the action in front of them.
+ */
+export function queueActionWithPendingEffects(state: GameState): GameState {
+    const currentAction = state.actionRequired;
+    let newState = queuePendingCustomEffects({ ...state, actionRequired: null });
+
+    if (currentAction) {
+        newState = {
+            ...newState,
+            queuedActions: [currentAction, ...(newState.queuedActions || [])]
+        };
+    }
+
+    return newState;
+}
+
+/**
  * Process only the queued actions without advancing phases.
  * Use this when you want to resolve queued effects but stay in the current phase.
  */

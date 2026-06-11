@@ -10,6 +10,7 @@ import { GameState, PlayedCard, Player, ActionRequired } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { easyAI } from '../logic/ai/easy';
 import { normalAI } from '../logic/ai/normal';
+import { hardAI } from '../logic/ai/hard';
 import { getAllCustomProtocolCards } from '../logic/customProtocols/cardFactory';
 import { recalculateAllLaneValues } from '../logic/game/stateManager';
 
@@ -500,5 +501,66 @@ describe('AI No-Softlock Tests', () => {
             expect(action.type).toBeDefined();
             expect(['skip', 'flipCard', 'deleteCard', 'selectLane', 'shiftCard', 'returnCard']).toContain(action.type);
         });
+
+        it(`Hard AI returns valid action for ${actionType}`, () => {
+            let state = createTestState();
+            const sourceCard = createCard('Fire', 3, true);
+            const targetCard = createCard('Water', 2, true);
+
+            state.opponent.lanes[0] = [sourceCard];
+            state.player.lanes[1] = [targetCard];
+            state = recalculateAllLaneValues(state);
+
+            state.actionRequired = {
+                type: actionType,
+                sourceCardId: sourceCard.id,
+                actor: 'opponent',
+                count: 1,
+            } as any;
+
+            const action = hardAI(state, state.actionRequired);
+
+            expect(action).toBeDefined();
+            expect(action.type).toBeDefined();
+            expect([
+                'skip',
+                'flipCard',
+                'deleteCard',
+                'selectLane',
+                'shiftCard',
+                'returnCard',
+                'selectCard',
+            ]).toContain(action.type);
+        });
     }
+
+    it('Hard AI top-level decision returns a valid playCard or fillHand', () => {
+        let state = createTestState();
+        state = recalculateAllLaneValues(state);
+        const action = hardAI(state, null);
+        expect(action).toBeDefined();
+        expect(action.type).toBeDefined();
+        expect(['playCard', 'fillHand', 'skip']).toContain(action.type);
+    });
+
+    it('Hard AI returns a compile action when in compile phase with compileable lanes', () => {
+        // Regression test for the softlock bug: in compile phase, the AI MUST
+        // return { type: 'compile', laneIndex } - returning a play/refresh
+        // softlocks aiManager.runOpponentTurnSync.
+        let state = createTestState();
+        // Stack the opponent's lane 0 to value >= 10 and beating the player.
+        state.opponent.lanes[0] = [
+            createCard('Fire', 5, true),
+            createCard('Fire', 5, true),
+        ];
+        state.player.lanes[0] = [];
+        state = recalculateAllLaneValues(state);
+        state.phase = 'compile';
+        state.compilableLanes = [0];
+
+        const action = hardAI(state, null);
+        expect(action).toBeDefined();
+        expect(action.type).toBe('compile');
+        expect((action as any).laneIndex).toBe(0);
+    });
 });

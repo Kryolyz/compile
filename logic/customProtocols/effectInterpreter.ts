@@ -153,6 +153,17 @@ export function executeCustomEffect(
     effectDef: EffectDefinition,
     allEffects?: EffectDefinition[]  // NEW: Pass all effects to check for chains
 ): EffectResult {
+    // DEFENSIVE: Some callers build partial contexts (e.g. stored follow-up
+    // contexts). opponent/actor are always derivable from cardOwner - filling
+    // them here prevents crashes deep inside the executors.
+    if (context.cardOwner && (!context.opponent || !context.actor)) {
+        context = {
+            ...context,
+            actor: context.actor || context.cardOwner,
+            opponent: context.opponent || (context.cardOwner === 'player' ? 'opponent' : 'player'),
+        };
+    }
+
     // CRITICAL: Include conditional info in params for ALL effects
     // This enables "If you do" patterns like Death-1, Speed-3, etc.
     const params = {

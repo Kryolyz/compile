@@ -42,10 +42,11 @@ export function playCardMessage(
     targetOwner?: Player
 ): string {
     const playerName = getPlayerName(player);
-    const cardName = `${card.protocol}-${card.value}`;
 
-    let msg = `${playerName} plays ${cardName}`;
-    if (!isFaceUp) msg += ' face-down';
+    // Face-down plays must NOT reveal the card name (hidden information!)
+    let msg = isFaceUp
+        ? `${playerName} plays ${card.protocol}-${card.value}`
+        : `${playerName} plays a face-down card`;
 
     if (targetOwner && targetOwner !== player) {
         const targetSideName = targetOwner === 'player' ? "Player's" : "Opponent's";

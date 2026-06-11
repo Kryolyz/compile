@@ -11,6 +11,7 @@
     "test:protocols": "node scripts/test-custom-protocols.cjs",
     "check:all": "npm run check:effects && npm run test:protocols",
     "test": "vitest run",
+    "simulate": "node scripts/run-simulation.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

@@ -36,3 +36,6 @@ flip_verification_result.txt
 nul
 
 test-results/
+
+sim-results/
+game-logs/

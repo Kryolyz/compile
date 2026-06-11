@@ -114,16 +114,16 @@ const matchesTargetFilter = (
     if (targetFilter.excludeSelf && sourceCardId && card.id === sourceCardId) return false;
 
     // Value range filter (Death-4: only value 0 or 1)
+    // Game rule: face-down cards have value 2 (effective value)
     if (targetFilter.valueRange) {
-        // For face-down cards, we can't know the value - skip them if filter requires specific values
-        if (!card.isFaceUp) return false;
-        if (card.value < targetFilter.valueRange.min || card.value > targetFilter.valueRange.max) return false;
+        const value = card.isFaceUp ? card.value : 2;
+        if (value < targetFilter.valueRange.min || value > targetFilter.valueRange.max) return false;
     }
 
     // Value equals filter (e.g., return all cards with value X)
     if (targetFilter.valueEquals !== undefined) {
-        if (!card.isFaceUp) return false;
-        if (card.value !== targetFilter.valueEquals) return false;
+        const value = card.isFaceUp ? card.value : 2;
+        if (value !== targetFilter.valueEquals) return false;
     }
 
     return true;

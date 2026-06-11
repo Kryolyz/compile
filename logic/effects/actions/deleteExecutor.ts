@@ -11,7 +11,7 @@
 import { GameState, Player, PlayedCard, EffectResult, EffectContext, AnimationRequest, Card } from '../../../types';
 import { log } from '../../utils/log';
 import { findCardOnBoard, handleUncoverEffect, isCardCommitted, isCardAtIndexUncovered, countUniqueProtocolsOnField } from '../../game/helpers/actionUtils';
-import { getLanesWhereOpponentHasHigherValue, getPlayerLaneValue } from '../../game/stateManager';
+import { getLanesWhereOpponentHasHigherValue, getPlayerLaneValue, getEffectiveCardValue } from '../../game/stateManager';
 
 /**
  * Helper function to add a card to the discard pile with correct format.
@@ -232,14 +232,17 @@ export function executeDeleteEffect(
                 if (targetFilter.faceState === 'face_up' && !c.isFaceUp) continue;
                 if (targetFilter.faceState === 'face_down' && c.isFaceUp) continue;
                 // Check valueRange (Death-4: value 0 or 1)
+                // CRITICAL: Use the EFFECTIVE value - face-down cards count as 2 (or 4 with Darkness-2)!
                 if (targetFilter.valueRange) {
                     const { min, max } = targetFilter.valueRange;
-                    if (c.value < min || c.value > max) continue;
+                    const effectiveValue = getEffectiveCardValue(c, lane);
+                    if (effectiveValue < min || effectiveValue > max) continue;
                 }
                 // NEW: Check valueSource (Luck-4: "card that shares a value with the discarded card")
+                // CRITICAL: Use the EFFECTIVE value - face-down cards count as 2 (or 4 with Darkness-2)!
                 if (targetFilter.valueSource === 'previous_effect_card') {
                     const targetValue = state.lastCustomEffectTargetValue;
-                    if (targetValue === undefined || c.value !== targetValue) continue;
+                    if (targetValue === undefined || getEffectiveCardValue(c, lane) !== targetValue) continue;
                 }
                 // Check protocolMatching
                 if (params.protocolMatching) {
@@ -279,31 +282,14 @@ export function executeDeleteEffect(
     // This is CRITICAL for Hate-2: "Delete your highest value uncovered card"
     let filteredTargets = validTargets;
     if (targetFilter.calculation === 'highest_value' || targetFilter.calculation === 'lowest_value') {
-        // Build a map of cardId -> effectiveValue
+        // Build a map of cardId -> effectiveValue (DRY: central helper handles face-down/Darkness-2)
         const cardValues = new Map<string, number>();
         for (const cardId of validTargets) {
             const cardInfo = findCardOnBoard(state, cardId);
             if (!cardInfo) continue;
 
-            // Find lane index for this card
-            let cardLaneIndex = -1;
-            for (let i = 0; i < state[cardInfo.owner].lanes.length; i++) {
-                if (state[cardInfo.owner].lanes[i].some(c => c.id === cardId)) {
-                    cardLaneIndex = i;
-                    break;
-                }
-            }
-
-            let effectiveValue = cardInfo.card.value;
-            // Check for Darkness-2 (face-down cards have value 4)
-            if (!cardInfo.card.isFaceUp && cardLaneIndex !== -1) {
-                const hasDarkness2 = state[cardInfo.owner].lanes[cardLaneIndex].some(
-                    c => c.isFaceUp && c.protocol === 'Darkness' && c.value === 2
-                );
-                effectiveValue = hasDarkness2 ? 4 : 2;
-            }
-
-            cardValues.set(cardId, effectiveValue);
+            const cardLane = state[cardInfo.owner].lanes.find(l => l.some(c => c.id === cardId));
+            cardValues.set(cardId, getEffectiveCardValue(cardInfo.card, cardLane || []));
         }
 
         // Find highest or lowest value
@@ -630,12 +616,11 @@ export function executeDeleteEffect(
         return { newState };
     }
 
-    // CRITICAL: When valueSource filter is applied, pass validTargets as allowedIds
-    // This ensures the UI/resolver can validate the selection (Luck-4: same value as discarded card)
-    const hasValueSourceFilter = targetFilter.valueSource === 'previous_effect_card';
-    const allowedIds = (filteredTargets.length < validTargets.length) || hasValueSourceFilter
-        ? filteredTargets
-        : undefined;
+    // CRITICAL: ALWAYS pass the computed target set as allowedIds.
+    // This is the single source of truth for what may be deleted - resolver,
+    // UI and all AIs validate against it instead of re-deriving the filters
+    // (valueRange/valueSource with effective values, protocolMatching, scope...).
+    const allowedIds = filteredTargets;
 
     // Set actionRequired for player to select cards
     newState.actionRequired = {

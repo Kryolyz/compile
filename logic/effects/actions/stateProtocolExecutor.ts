@@ -74,6 +74,11 @@ export function executeStateProtocolEffect(
 
     let newState = { ...state };
 
+    // CRITICAL: Invalidate any previously stated protocol. A new "state a protocol"
+    // effect must always ask for a fresh choice - subsequent effects must never
+    // accidentally reuse a stale value from an earlier trigger.
+    newState.lastStatedProtocol = undefined;
+
     // Set actionRequired for player to choose a protocol
     newState.actionRequired = {
         type: 'state_protocol',
