@@ -11,12 +11,12 @@
     "test:protocols": "node scripts/test-custom-protocols.cjs",
     "check:all": "npm run check:effects && npm run test:protocols",
     "test": "vitest run",
+    "headless": "node scripts/run-headless.mjs",
     "simulate": "node scripts/run-simulation.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
-    "headless": "vitest run tests/headless-ai-game.test.ts"
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "react": "^19.1.1",

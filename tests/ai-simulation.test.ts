@@ -61,6 +61,9 @@ beforeAll(() => {
     seedProtocols(allProtocolNames());
 });
 
+// Parse seed from environment variable
+const SEED = process.env.SIM_SEED ? parseInt(process.env.SIM_SEED, 10) : undefined;
+
 describe.skipIf(GAMES <= 0)(`AI vs AI simulation (${AI1} vs ${AI2})`, () => {
     it(`plays ${GAMES} full games`, async () => {
         const { aiManager, resolvers, phaseManager, stateManager } = await loadGameModules();
@@ -82,7 +85,8 @@ describe.skipIf(GAMES <= 0)(`AI vs AI simulation (${AI1} vs ${AI2})`, () => {
             const logLine = (line: string) => gameLog.push(line);
 
             let state: GameState = stateManager.createInitialState(
-                ai2Protos, ai1Protos, true, 'opponent' // AI1 (opponent slot) takes the first turn
+                ai2Protos, ai1Protos, true, 'opponent', // AI1 (opponent slot) takes the first turn
+                SEED !== undefined ? SEED + g : undefined // Different seed per game if seed is set
             );
             logLine(`=== GAME ${g + 1} | P1=${AI1.toUpperCase()}: ${ai1Protos.join(',')} | P2=${AI2.toUpperCase()}: ${ai2Protos.join(',')} | P1 starts ===`);
             logLine(`    [INFO] P1 starting hand: ${state.opponent.hand.map(c => `${c.protocol}-${c.value}`).join(', ')}`);

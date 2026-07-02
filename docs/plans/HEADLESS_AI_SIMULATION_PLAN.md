@@ -1,7 +1,7 @@
 # Headless AI vs AI Simulation - Architecture Plan
 
 **Date**: 2025-01-06  
-**Status**: ✅ Phase 1 Complete (2025-01-06)  
+**Status**: ✅ Phase 1, 2 & 3 Complete (2025-01-06)  
 **Goal**: Separate game logic from frontend to enable headless CLI-driven AI vs AI games
 
 ---
@@ -69,6 +69,151 @@ npm run build
 | `logic/customProtocols/cardFactory.ts` | Added StorageAdapter, parameterized getAllCustomProtocolCards() |
 | `tests/setup.ts` | **New file** - localStorage shim for Node.js tests |
 | `vite.config.ts` | Added setupFiles config |
+
+---
+
+## Phase 2 Completion Report ✅
+
+**Date**: 2025-01-06  
+**Status**: Complete  
+**Tests**: ✅ Headless CLI works (tested with 3-5 games)  
+
+### What Was Built
+
+1. **Created `scripts/run-headless.mjs`**
+   - Wraps existing `tests/ai-simulation.test.ts`
+   - Accepts CLI arguments: `node scripts/run-headless.mjs hard normal 10`
+   - Sets environment variables: `SIM_GAMES`, `SIM_AI1`, `SIM_AI2`
+   - Spawns vitest in child process
+
+2. **Updated `package.json`**
+   - Added script: `"headless": "node scripts/run-headless.mjs"`
+   - Usage: `npm run headless -- hard normal 10`
+
+### Usage Examples
+
+```bash
+# Run 10 games: hard AI vs normal AI
+npm run headless -- hard normal 10
+
+# Run 100 games: hard vs hard
+npm run headless -- hard hard 100
+
+# Custom protocols (modify tests/ai-simulation.test.ts)
+npm run headless -- medium easy 50
+```
+
+### Verification
+
+```bash
+npm run headless -- hard normal 3
+# Output:
+# Game   1: P1-hard    in  35 turns | P1:3 P2:0
+# Game   2: P1-hard    in  37 turns | P1:3 P2:1
+# Game   3: P1-hard    in  35 turns | P1:3 P2:1
+# SUMMARY: 3 games | P1 HARD: 3 (100%) | P2 NORMAL: 0 (0%)
+```
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `scripts/run-headless.mjs` | **New file** - Headless CLI wrapper |
+| `package.json` | Added `headless` script |
+
+---
+
+## Phase 3 Completion Report 🎲
+
+**Date**: 2025-01-06  
+**Status**: ✅ Complete  
+**Tests**: Build passes ✅, Seeded RNG verified  
+
+### What Was Implemented
+
+1. **Created `utils/seededRandom.ts`** ✅
+   - Seeded random number generator using Linear Congruential Generator (LCG)
+   - Functions: `setRandomSeed(seed)`, `getRandomSeed()`, `resetRandomSeed()`
+   - Exports: `random()`, `randomInt(max)`, `shuffleArray(array)`, `randomPick(array)`, `weightedRandom(items)`
+   - ✅ Verified: Same seed produces identical sequences
+   - ✅ Verified: `shuffleArray()` is reproducible
+
+2. **Updated `utils/gameLogic.ts`** ✅
+   - Modified `shuffleDeck()` to use `shuffleArray()` from seededRandom
+   - Deck shuffling is now reproducible with same seed
+
+3. **Updated `logic/game/stateManager.ts`** ✅
+   - Added optional `seed` parameter to `createInitialState()`
+   - Sets RNG seed if provided (for reproducible initial state)
+   - Signature: `createInitialState(playerProtocols, opponentProtocols, useControlMechanic, startingPlayer, seed?)`
+
+4. **Updated `scripts/run-headless.mjs`** ✅
+   - Added `--seed=<number>` CLI argument
+   - Passes `SIM_SEED` environment variable to test runner
+   - Usage: `npm run headless -- hard normal 10 --seed=12345`
+
+5. **Updated `tests/ai-simulation.test.ts`** ✅
+   - Parses `SIM_SEED` from environment variables
+   - Passes seed to `createInitialState()` for each game
+   - Different seed per game: `SEED !== undefined ? SEED + g : undefined`
+
+### Design Decision: AI Randomness
+
+**User decision**: AI decision-making randomness does NOT need to be reproducible.
+
+**Rationale**:
+- ✅ Deck shuffling is the primary source of randomness (now seeded)
+- ✅ AI `Math.random()` calls add "character" to AI behavior
+- ✅ Simulations are "mostly reproducible" (same initial conditions)
+- ✅ Benchmarks are fair (same initial state, AI choices vary naturally)
+
+**What this means**:
+- Same seed → Same initial hands and deck order
+- Same seed → Different AI decisions (AI uses `Math.random()`)
+- Result: Realistic AI behavior with reproducible starting conditions
+
+### Usage Examples
+
+```bash
+# Reproducible initial state (deck shuffle is seeded)
+npm run headless -- hard normal 10 --seed=12345
+
+# Different seeds = different starting conditions
+npm run headless -- hard normal 10 --seed=42
+npm run headless -- hard normal 10 --seed=99
+
+# No seed = fully random (Math.random() for everything)
+npm run headless -- hard normal 10
+```
+
+### Verification
+
+```bash
+# Test 1: Same seed produces same initial state
+npm run headless -- hard normal 1 --seed=42
+# Check sim-results/ - initial hands should be identical
+
+# Test 2: Different seeds produce different initial state  
+npm run headless -- hard normal 1 --seed=42
+npm run headless -- hard normal 1 --seed=99
+# Initial hands should differ
+
+# Test 3: Build passes
+npm run build  # ✅ 222 modules transformed
+```
+
+### Files Modified
+
+| File | Change | Status |
+|------|--------|--------|
+| `utils/seededRandom.ts` | **New file** - Seeded RNG utility | ✅ Complete |
+| `utils/gameLogic.ts` | Uses `shuffleArray()` instead of `Math.random()` | ✅ Complete |
+| `logic/game/stateManager.ts` | Added `seed` parameter to `createInitialState()` | ✅ Complete |
+| `scripts/run-headless.mjs` | Added `--seed` argument | ✅ Complete |
+| `tests/ai-simulation.test.ts` | Uses `SIM_SEED` environment variable | ✅ Complete |
+| `logic/ai/easy.ts` | **Reverted** - Uses `Math.random()` (by design) | ✅ Complete |
+| `logic/ai/normal.ts` | **Not modified** - Uses `Math.random()` (by design) | ✅ Complete |
+| `logic/ai/hard.ts` | **Not modified** - Uses `Math.random()` (by design) | ✅ Complete |
 
 ---
 

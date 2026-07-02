@@ -8,6 +8,7 @@ import { GameState, Player, PlayerState, PlayedCard } from '../../types';
 import { buildDeck, shuffleDeck } from '../../utils/gameLogic';
 import { drawCards as drawCardsUtil } from '../../utils/gameStateModifiers';
 import { log } from '../utils/log';
+import { setRandomSeed, getRandomSeed } from '../../utils/seededRandom';
 
 export const createInitialPlayerState = (protocols: string[]): PlayerState => {
     const deck = shuffleDeck(buildDeck(protocols));
@@ -39,7 +40,18 @@ export const createInitialPlayerState = (protocols: string[]): PlayerState => {
     };
 };
 
-export const createInitialState = (playerProtocols: string[], opponentProtocols: string[], useControlMechanic: boolean, startingPlayer: Player = 'player'): GameState => {
+export const createInitialState = (
+    playerProtocols: string[], 
+    opponentProtocols: string[], 
+    useControlMechanic: boolean, 
+    startingPlayer: Player = 'player',
+    seed?: number
+): GameState => {
+    // Set RNG seed if provided (for reproducible games)
+    if (seed !== undefined) {
+        setRandomSeed(seed);
+    }
+
     const playerState = createInitialPlayerState(playerProtocols);
     const opponentState = createInitialPlayerState(opponentProtocols);
     const initialState: GameState = {

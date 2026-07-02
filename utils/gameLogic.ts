@@ -8,6 +8,7 @@ import { getAllCustomProtocolCards } from "../logic/customProtocols/cardFactory"
 import { loadCustomProtocols } from "../logic/customProtocols/storage";
 import { isSystemProtocol } from "../screens/CustomProtocolCreator/ProtocolList";
 import { isCustomProtocolEnabled } from "./customProtocolSettings";
+import { random, shuffleArray } from "./seededRandom";
 
 // Cached merged cards to avoid reloading on every buildDeck call
 let cachedMergedCards: Card[] | null = null;
@@ -60,15 +61,11 @@ export function buildDeck(protocols: string[]): Card[] {
 
 /**
  * Shuffles an array of cards in-place using the Fisher-Yates algorithm.
+ * Uses seeded random if seed is set (for reproducible games).
  * @param deck - The array of cards to shuffle.
  * @returns The shuffled array of cards.
  */
 // FIX: Made the function generic to accept any array type.
 export function shuffleDeck<T>(deck: T[]): T[] {
-    const shuffledDeck = [...deck]; // Create a copy to avoid mutating the original
-    for (let i = shuffledDeck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledDeck[i], shuffledDeck[j]] = [shuffledDeck[j], shuffledDeck[i]];
-    }
-    return shuffledDeck;
+    return shuffleArray(deck);
 }
