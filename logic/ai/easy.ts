@@ -90,6 +90,8 @@ type TargetFilter = {
     valueRange?: { min: number; max: number };
     valueEquals?: number;
     calculation?: 'highest_value' | 'lowest_value';
+    valueMinGreaterThanHandSize?: boolean;  // Target must have value > hand size
+    valueLessThanUniqueProtocolsOnField?: boolean;  // Target must have value < unique protocols on field
 };
 
 // Helper: Check if a card matches ALL targetFilter criteria

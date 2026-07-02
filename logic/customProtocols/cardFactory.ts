@@ -4,7 +4,7 @@
  */
 
 import { Card } from '../../data/cards';
-import { CustomProtocolDefinition, CustomCardDefinition, EffectDefinition } from '../../types/customProtocol';
+import { CustomProtocolDefinition, CustomCardDefinition, EffectDefinition, ReturnEffectParams } from '../../types/customProtocol';
 
 /**
  * Helper function to build target description text from params
@@ -1167,7 +1167,7 @@ export const getEffectSummary = (effect: EffectDefinition, context?: { protocolN
             if (options.length === 2) {
                 // Generate text for each option
                 const optionTexts = options.map((opt: any) => {
-                    const optEffect = { trigger: 'on_play', params: opt.params, position: 'bottom' } as EffectDefinition;
+                    const optEffect = { trigger: 'play' as const, params: opt.params, position: 'bottom' } as EffectDefinition;
                     let optText = getEffectSummary(optEffect);
                     // Remove trailing period for embedding
                     if (optText.endsWith('.')) {
@@ -1500,16 +1500,16 @@ export const getEffectSummary = (effect: EffectDefinition, context?: { protocolN
             // Remove period from first part and add "then" before follow-up (lowercase)
             const firstPart = mainText.endsWith('.') ? mainText.slice(0, -1) : mainText;
             mainText = `${firstPart}, then ${followUpText.toLowerCase()}`;
-        } else if (effect.conditional.type === 'optional') {
-            // Clarity-1: "Reveal the top card of your deck. You may discard that card."
-            const firstPart = mainText.endsWith('.') ? mainText.slice(0, -1) : mainText;
-            mainText = `${firstPart}. You may ${followUpText.toLowerCase()}`;
+        } else if (effect.conditional.type === 'if_you_do' || effect.conditional.type === 'if_executed') {
+            // "If you do" format (if_executed)
+            mainText = `${mainText} If you do, ${followUpText.toLowerCase()}`;
         } else if (effect.conditional.type === 'if_protocol_matches_stated') {
             // Luck-3: "If the discarded card matches the stated protocol, delete 1 card."
             mainText = `${mainText} If the discarded card matches the stated protocol, ${followUpText.toLowerCase()}`;
         } else {
-            // "If you do" format (if_executed)
-            mainText = `${mainText} If you do, ${followUpText.toLowerCase()}`;
+            // "then" format (default)
+            const firstPart = mainText.endsWith('.') ? mainText.slice(0, -1) : mainText;
+            mainText = `${firstPart}, then ${followUpText.toLowerCase()}`;
         }
     }
 
@@ -1665,8 +1665,10 @@ export const generateEffectText = (effects: EffectDefinition[], context?: { prot
 
         // When a card would be returned to a player's hand
         if (trigger === 'when_card_returned') {
-            // Check targetOwner to determine the text
-            const targetOwner = effect.params?.targetOwner || 'opponent';
+            // Check targetFilter.owner to determine the text
+            // Note: targetFilter only exists on some effect types (delete, flip, shift, return)
+            const params = effect.params as ReturnEffectParams;
+            const targetOwner = params.targetFilter?.owner || 'opponent';
             const targetText = targetOwner === 'opponent' ? "your opponent's" : 'your';
             return `<div><span class='emphasis'>When a card would be returned to ${targetText} hand:</span> ${summary}</div>`;
         }
@@ -1729,11 +1731,32 @@ export const convertCustomProtocolToCards = (protocol: CustomProtocolDefinition)
 };
 
 /**
- * Get all custom protocols as Card objects
+ * Storage adapter interface for dependency injection
+ * Allows headless/Node.js usage without localStorage
  */
-export const getAllCustomProtocolCards = (): Card[] => {
+export interface StorageAdapter {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
+}
+
+/**
+ * Default browser storage adapter (uses localStorage)
+ */
+const browserStorage: StorageAdapter = {
+    getItem: (key: string) => localStorage.getItem(key),
+    setItem: (key: string, value: string) => localStorage.setItem(key, value),
+    removeItem: (key: string) => localStorage.removeItem(key),
+};
+
+/**
+ * Get all custom protocols as Card objects
+ * @param storage - Optional storage adapter (defaults to localStorage)
+ */
+export const getAllCustomProtocolCards = (storage?: StorageAdapter): Card[] => {
     try {
-        const stored = localStorage.getItem('custom_protocols_v1');
+        const adapter = storage || browserStorage;
+        const stored = adapter.getItem('custom_protocols_v1');
         if (!stored) {
             return [];
         }

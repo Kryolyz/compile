@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GameState, Player, PlayedCard, PlayerState } from '../types';
+import { GameState, Player, PlayedCard, PlayerState, GamePhase } from '../types';
 import {
     VisualSnapshot,
     PlayerVisualState,
@@ -300,7 +300,7 @@ export function snapshotToGameState(
         player: visualStateToPlayerState(snapshot.player),
         opponent: visualStateToPlayerState(snapshot.opponent),
         turn: snapshot.turn,
-        phase: snapshot.phase,
+        phase: snapshot.phase as GamePhase,
         controlCardHolder: snapshot.controlCardHolder,
         useControlMechanic,
         winner: null,
@@ -308,6 +308,30 @@ export function snapshotToGameState(
         actionRequired: null,
         queuedActions: [],
         compilableLanes: [],
+        stats: {
+            player: {
+                cardsPlayed: 0,
+                cardsDiscarded: 0,
+                cardsDeleted: 0,
+                cardsFlipped: 0,
+                cardsShifted: 0,
+                cardsDrawn: 0,
+                cardsReturned: 0,
+                handsRefreshed: 0,
+                protocolsCompiled: 0,
+            },
+            opponent: {
+                cardsPlayed: 0,
+                cardsDiscarded: 0,
+                cardsDeleted: 0,
+                cardsFlipped: 0,
+                cardsShifted: 0,
+                cardsDrawn: 0,
+                cardsReturned: 0,
+                handsRefreshed: 0,
+                protocolsCompiled: 0,
+            },
+        },
     };
 }
 
@@ -321,8 +345,8 @@ function visualStateToPlayerState(visualState: PlayerVisualState): PlayerState {
         protocol: 'Unknown',
         value: 0,
         isFaceUp: false,
-        bottomRule: '',
-        middleRule: '',
+        bottom: '',
+        middle: '',
     } as PlayedCard));
 
     // Create fake discard array with top card if it exists
@@ -335,8 +359,8 @@ function visualStateToPlayerState(visualState: PlayerVisualState): PlayerState {
                 protocol: 'Unknown',
                 value: 0,
                 isFaceUp: false,
-                bottomRule: '',
-                middleRule: '',
+                bottom: '',
+                middle: '',
             } as PlayedCard);
         }
         fakeDiscard.push(visualState.topTrashCard);
@@ -353,10 +377,14 @@ function visualStateToPlayerState(visualState: PlayerVisualState): PlayerState {
         cannotCompile: false,
         stats: {
             cardsPlayed: 0,
-            cardsDrawn: 0,
+            cardsDiscarded: 0,
             cardsDeleted: 0,
+            cardsFlipped: 0,
+            cardsShifted: 0,
+            cardsDrawn: 0,
+            cardsReturned: 0,
+            handsRefreshed: 0,
             protocolsCompiled: 0,
-            effectsTriggered: 0,
         },
     };
 }

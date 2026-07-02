@@ -317,7 +317,7 @@ Requests MUESSEN `cardSnapshot` und Position-Info enthalten, weil die Karte im P
 - Single Point of Truth - eine Stelle fuer jede Logik
 
 ## Weitere Dokumentation
-- `game_rules.md` - Detaillierte Spielregeln mit Targeting, Interrupt-System, AI-Strategie
-- `CARD_TARGETING_RULES.md` - Karten-Targeting Details
-- `beschreibung.txt` - Spielregeln und Karteneffektspezifika
-- `COMP-MN01_Rulesheet_Updated.pdf` - Original-Regeln
+- `docs/onboarding/game_rules.md` - Detaillierte Spielregeln mit Targeting, Interrupt-System, AI-Strategie
+- `docs/onboarding/CARD_TARGETING_RULES.md` - Karten-Targeting Details
+- `docs/onboarding/beschreibung.txt` - Spielregeln und Karteneffektspezifika
+- `COMP-MN01_Rulesheet_Updated.pdf` - Original-Regeln (falls vorhanden)

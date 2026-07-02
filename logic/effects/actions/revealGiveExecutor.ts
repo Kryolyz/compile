@@ -127,7 +127,9 @@ export function executeRevealGiveEffect(
         // Store the revealed card ID for useCardFromPreviousEffect (used by conditional discard)
         // ALWAYS generate a fresh ID to ensure uniqueness across multiple triggers
         const topCardId = `deck-top-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        newDeck[0] = { ...topCard, id: topCardId };
+        // CRITICAL: Convert Card to PlayedCard by adding required id and isFaceUp properties
+        const topCardWithId: PlayedCard = { ...topCard, id: topCardId, isFaceUp: true };
+        newDeck[0] = topCardWithId;
         ownerState.deck = newDeck;
         newState[cardOwner] = ownerState;
         newState.lastCustomEffectTargetCardId = topCardId;

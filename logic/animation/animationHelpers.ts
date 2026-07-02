@@ -1376,7 +1376,7 @@ export function enqueueAnimationsFromRequests(
                                         (r as any).playIndex !== undefined &&
                                         (r as any).playIndex < playIndex &&
                                         (r as any).prePlayLanes === prePlayLanes)
-                            .map(r => state.player.lanes[laneIdx]?.find(c => c.id === r.cardId))
+                            .map(r => state.player.lanes[laneIdx]?.find(c => c.id === (r as any).cardId))
                             .filter(Boolean) as PlayedCard[];
                         return [...lane, ...previousCardsInThisLane];
                     });
@@ -1389,7 +1389,7 @@ export function enqueueAnimationsFromRequests(
                                         (r as any).playIndex !== undefined &&
                                         (r as any).playIndex < playIndex &&
                                         (r as any).prePlayLanes === prePlayLanes)
-                            .map(r => state.opponent.lanes[laneIdx]?.find(c => c.id === r.cardId))
+                            .map(r => state.opponent.lanes[laneIdx]?.find(c => c.id === (r as any).cardId))
                             .filter(Boolean) as PlayedCard[];
                         return [...lane, ...previousCardsInThisLane];
                     });
@@ -1512,23 +1512,22 @@ export function enqueueAnimationsFromRequests(
                 const perCardDuration = calculateCompileDeleteDuration(deleteRequestCount);
 
                 // Create animation
-                const animation: Omit<AnimationQueueItem, 'id'> = {
-                    id: generateAnimationId('delete'),
+                const animation = {
                     type: 'delete' as AnimationType,
                     snapshot,
                     duration: perCardDuration,
                     animatingCard: {
                         card: deleteCard,
                         fromPosition: {
-                            type: 'lane',
+                            type: 'lane' as const,
                             owner: request.owner,
                             laneIndex: deleteLaneIndex,
                             cardIndex: deleteCardIndex,
-                        },
+                        } as CardPosition,
                         toPosition: {
-                            type: 'trash',
+                            type: 'trash' as const,
                             owner: request.owner,
-                        },
+                        } as CardPosition,
                         targetRotation: 90,
                         // Erste Animation: kurze Pause, ab zweiter: kein startDelay (Queue ist sequentiell)
                         startDelay: deleteIndex === 0 ? BATCH_ANIMATION_INITIAL_DELAY : 0,

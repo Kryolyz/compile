@@ -344,7 +344,7 @@ function executeTriggeredEffect(
     // Set phase based on trigger type
     const phaseContext = getPhaseContext(context.triggerType);
     if (phaseContext) {
-        currentState = setLogPhase(currentState, phaseContext);
+        currentState = setLogPhase(currentState, phaseContext as any);
     }
 
     if (increaseIndent) {

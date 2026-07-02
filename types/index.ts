@@ -121,6 +121,7 @@ export interface TargetFilter {
     valueEquals?: number;
     calculation?: 'highest_value' | 'lowest_value';
     valueMinGreaterThanHandSize?: boolean;  // Target must have value > hand size
+    valueLessThanUniqueProtocolsOnField?: boolean;  // Target must have value < unique protocols on field
 }
 
 /**
@@ -474,7 +475,8 @@ export type ActionRequired =
           'select_opponent_card_to_return' | 'select_any_card_to_flip' |
           'select_board_card_to_reveal_custom' |
           'select_lane_to_shift_revealed_board_card_custom' |
-          'select_lane_for_water_3' | 'prompt_optional_draw';
+          'select_lane_for_water_3' | 'prompt_optional_draw' |
+          'plague_4_opponent_delete' | 'plague_4_player_flip_optional';
     actor: Player;
     sourceCardId?: string;
     [key: string]: any;  // Allow any additional properties for legacy compatibility
@@ -493,6 +495,7 @@ export type ActionRequired =
         box: 'top' | 'bottom';
         effectDescription: string;
     }>;
+    sourceCardId?: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -523,6 +526,15 @@ export type ActionRequired =
     type: 'prompt_optional_shuffle_trash';
     actor: Player;
     sourceCardId: string;
+}
+| {
+    type: 'reveal_deck_draw_protocol';
+    actor: Player;
+    sourceCardId: string;
+    revealedCards: Card[];
+    targetProtocol: string;
+    autoSelectedIndices: number[];
+    shuffleAfter?: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -587,7 +599,7 @@ export interface LogEntry {
     message: string;
     indentLevel?: number;
     sourceCard?: string;
-    phase?: 'start' | 'middle' | 'end' | 'uncover' | 'compile' | 'oncover';
+    phase?: 'start' | 'middle' | 'end' | 'uncover' | 'compile' | 'oncover' | 'after';
     sourceCardRef?: LogCardRef;
     targetCardRefs?: LogCardRef[];
 }
@@ -660,7 +672,16 @@ export interface GameState {
      *  Smoke-1's shift is deferred until Test-1's ALL effects complete */
     _deferredParentEffects?: any[];
     /** Custom protocol effects pending execution */
-    _pendingCustomEffects?: any[];
+    _pendingCustomEffects?: {
+        sourceCardId: string;
+        laneIndex: number;
+        context: EffectContext;
+        effects: any[];
+        selectedCardFromPreviousEffect?: string | null;
+        logSource?: string;
+        logPhase?: 'middle' | 'start' | 'end' | 'compile' | 'uncover' | 'oncover' | 'after';
+        logIndentLevel?: number;
+    };
     /** Suspended queued actions during effect execution */
     _suspendedQueuedActions?: ActionRequired[];
     /** Pending animations from SYNC effects - complete AnimationQueueItems for direct enqueue */
@@ -714,24 +735,27 @@ export type AIAction =
     // Time Protocol actions
     | { type: 'selectTrashCard', cardIndex: number }
     // Shuffle trash prompt
-    | { type: 'resolveShuffleTrashPrompt', accept: boolean };
+    | { type: 'resolveShuffleTrashPrompt', accept: boolean }
+    // Reveal deck draw protocol (Unity-4)
+    | { type: 'confirmRevealDeckDrawProtocol', selectedIndices: number[] };
 
 // =============================================================================
 // ANIMATION REQUEST TYPES
 // =============================================================================
 
 export type AnimationRequest =
-    | { type: 'delete'; cardId: string; owner: Player }
+    | { type: 'delete'; cardId: string; owner: Player; cardSnapshot?: PlayedCard; cardIndex?: number; laneIndex?: number }
     | { type: 'flip'; cardId: string; owner?: Player; laneIndex?: number; cardIndex?: number; toFaceUp?: boolean }
-    | { type: 'shift'; cardId: string; fromLane: number; toLane: number; owner: Player }
-    | { type: 'return'; cardId: string; owner: Player }
-    | { type: 'discard'; cardId: string; owner: Player }
-    | { type: 'play'; cardId: string; owner: Player; toLane?: number; fromDeck?: boolean; isFaceUp?: boolean }
-    | { type: 'draw'; player: Player; count: number; cardIds: string[]; fromOpponentDeck?: boolean }
+    | { type: 'shift'; cardId: string; fromLane: number; toLane: number; owner: Player; cardSnapshot?: PlayedCard; cardIndex?: number; preShiftLanes?: { player: PlayedCard[][]; opponent: PlayedCard[][] } }
+    | { type: 'return'; cardId: string; owner: Player; cardIndex?: number }
+    | { type: 'discard'; cardId: string; owner: Player; cardIndex?: number }
+    | { type: 'play'; cardId: string; owner: Player; toLane?: number; fromDeck?: boolean; isFaceUp?: boolean; prePlayLanes?: { player: PlayedCard[][]; opponent: PlayedCard[][] }; playIndex?: number; laneIndex?: number }
+    | { type: 'draw'; player: Player; count: number; cardIds: string[]; cardId?: string; fromOpponentDeck?: boolean }
     | {
         type: 'compile_delete';
         laneIndex: number;
-        deletedCards: Array<{cardId: string; owner: Player}>
+        deletedCards: Array<{cardId: string; owner: Player}>;
+        cardId?: string; // Optional for compatibility
     }
     | { type: 'take'; cardId: string; owner: Player; cardSnapshot: PlayedCard; fromHandIndex: number }
     | { type: 'give'; cardId: string; owner: Player; cardSnapshot: PlayedCard; handIndex: number };

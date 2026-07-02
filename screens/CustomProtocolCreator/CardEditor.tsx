@@ -41,7 +41,7 @@ export const CardEditor: React.FC<CardEditorProps> = ({ card, protocolName, prot
         setEditingEffect(null);
     }, [card.value]);
 
-    const handleAddEffect = (box: BoxType, action: EffectActionType, trigger: 'passive' | 'on_play' | 'start' | 'end' | 'on_cover') => {
+    const handleAddEffect = (box: BoxType, action: EffectActionType, trigger: 'passive' | 'play' | 'start' | 'end' | 'on_cover') => {
         const newEffect: EffectDefinition = {
             id: uuidv4(),
             params: createDefaultParams(action),

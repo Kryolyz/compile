@@ -42,8 +42,11 @@ export const DeckTrashArea: React.FC<DeckTrashAreaProps> = ({
         protocol: 'Deck',
         value: deckCount,
         isFaceUp: false,
-        bottomRule: '',
-        middleRule: '',
+        top: '',
+        middle: '',
+        bottom: '',
+        keywords: {},
+        category: 'Deck',
     };
 
     return (

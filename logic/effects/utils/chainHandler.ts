@@ -147,7 +147,7 @@ export function hasConditional(effect: EffectDefinition): boolean {
 /**
  * Get the conditional type of an effect
  */
-export function getConditionalType(effect: EffectDefinition): 'if_executed' | 'then' | null {
+export function getConditionalType(effect: EffectDefinition): 'if_executed' | 'if_you_do' | 'then' | 'if_protocol_matches_stated' | null {
     if (!effect.conditional) {
         return null;
     }
@@ -183,7 +183,7 @@ export function resolveUseCardFromPreviousEffect(
     effect: EffectDefinition,
     context: EffectContext
 ): EffectContext {
-    if (!effect.params?.useCardFromPreviousEffect) {
+    if (!effect.useCardFromPreviousEffect) {
         return context;
     }
 

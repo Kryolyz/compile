@@ -36,14 +36,15 @@ export type EffectActionType =
     | 'state_protocol'  // Luck-3: Player states a protocol
     | 'swap_stacks'     // Mirror-2: Swap cards between own lanes
     | 'copy_opponent_middle'  // Mirror-1: Copy opponent's middle effect
-    | 'auto_compile';  // Diversity-0: Mark lane as compiled (cards stay on board)
+    | 'auto_compile'  // Diversity-0: Mark lane as compiled (cards stay on board)
+    | 'redirect_return_to_deck'  // Custom: Return card to deck instead of hand
+    | 'card_property';  // Custom: Modify card properties
 
 export type EffectPosition = 'top' | 'middle' | 'bottom';
 
-// Expanded trigger types to support all card effects
 export type EffectTrigger =
     // Immediate triggers (Middle Box)
-    | 'on_play'              // When played or uncovered
+    | 'play'              // When played or uncovered (was 'on_play')
     // Turn phase triggers (Bottom Box)
     | 'start'                // Start of turn
     | 'end'                  // End of turn
@@ -563,6 +564,12 @@ export interface CustomCardDefinition {
     topEffects: EffectDefinition[];     // Top box (passive, always active when face-up)
     middleEffects: EffectDefinition[];  // Middle box (on play / when uncovered)
     bottomEffects: EffectDefinition[];  // Bottom box (start/end/on-cover triggers)
+    // Optional: Manual text overrides (if not provided, text is generated from effects)
+    text?: {
+        top?: string;
+        middle?: string;
+        bottom?: string;
+    };
 }
 
 /**

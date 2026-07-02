@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
 import { CardPattern } from '../../types/customProtocol';
+
+// CSS properties type (replacing React.CSSProperties dependency)
+type CSSProperties = Record<string, string | number>;
 
 /**
  * Generate CSS background-image style for a given pattern and color
  */
-export const getPatternStyle = (pattern: CardPattern, color: string): React.CSSProperties => {
+export const getPatternStyle = (pattern: CardPattern, color: string): CSSProperties => {
     // Convert hex to HSL for pattern variations
     const hsl = hexToHSL(color);
     const { h, s, l } = hsl;

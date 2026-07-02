@@ -188,24 +188,26 @@ export function executeDiscardEffect(
         // Take top card from deck
         const newDeck = [...deckOwnerState.deck];
         const discardedCard = newDeck.shift()!;  // Remove from top (index 0)
+        // CRITICAL: Cards from deck are Card type (no id). Generate ID for tracking.
+        const discardedCardWithId: PlayedCard = { ...discardedCard, id: `deck-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, isFaceUp: false };
         deckOwnerState.deck = newDeck;
-        deckOwnerState.discard = [...deckOwnerState.discard, discardedCard];
+        deckOwnerState.discard = [...deckOwnerState.discard, discardedCardWithId];
         newState[deckOwner] = deckOwnerState;
 
         // Log the discard with revealed card info
-        newState = log(newState, cardOwner, `Discard the top card of ${possessiveOwner} deck: ${discardedCard.protocol}-${discardedCard.value}.`);
+        newState = log(newState, cardOwner, `Discard the top card of ${possessiveOwner} deck: ${discardedCardWithId.protocol}-${discardedCardWithId.value}.`);
 
         // CRITICAL: Store the card ID AND value for follow-up effects
-        newState.lastCustomEffectTargetCardId = discardedCard.id;
-        newState.lastCustomEffectTargetValue = discardedCard.value;
+        newState.lastCustomEffectTargetCardId = discardedCardWithId.id;
+        newState.lastCustomEffectTargetValue = discardedCardWithId.value;
 
         // Store context for follow-up effects
         (newState as any)._discardContext = {
             actor: deckOwner,
             discardedCount: 1,
             sourceCardId: card.id,
-            discardedCardValue: discardedCard.value,
-            discardedCardProtocol: discardedCard.protocol,
+            discardedCardValue: discardedCardWithId.value,
+            discardedCardProtocol: discardedCardWithId.protocol,
         };
 
         // Show modal to display the discarded card (pass full card for proper display)
@@ -213,7 +215,7 @@ export function executeDiscardEffect(
             type: 'confirm_deck_discard',
             actor: cardOwner,  // The player who triggered the effect
             sourceCardId: card.id,
-            discardedCard: discardedCard,  // Pass full card object for CardComponent
+            discardedCard: discardedCardWithId,  // Pass full card object for CardComponent
             deckOwner: source === 'top_deck_own' ? 'own' : 'opponent',
             // CRITICAL: Pass conditional info for follow-up effects (e.g., Luck-2: draw cards)
             followUpEffect: conditional?.thenEffect,

@@ -9,7 +9,7 @@
  */
 
 import { GameState, Player, PlayedCard } from '../../../types';
-import { EffectDefinition } from '../../../types/customProtocol';
+import { EffectDefinition, EffectParams } from '../../../types/customProtocol';
 import { findValidTargets, hasValidTargets } from './targetResolver';
 import type { PreconditionResult } from '../types';
 
@@ -26,7 +26,7 @@ export function checkEffectPrecondition(
     cardOwner: Player,
     effect: EffectDefinition
 ): PreconditionResult {
-    const params = effect.params || {};
+    const params = effect.params as EffectParams;
     const action = params.action;
 
     // Route to specific precondition checkers
@@ -455,10 +455,11 @@ export function shouldSkipOptionalEffect(
     cardOwner: Player,
     effect: EffectDefinition
 ): boolean {
-    const params = effect.params || {};
+    const params = effect.params as EffectParams;
 
     // Non-optional effects are never skipped this way
-    if (!params.optional) {
+    // Check if the effect has an 'optional' property (only some effect types have it)
+    if (!('optional' in params) || !params.optional) {
         return false;
     }
 

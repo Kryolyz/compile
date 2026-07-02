@@ -723,17 +723,19 @@ export function executeCustomEffect(
 
     // CRITICAL: Propagate log context to actionRequired for proper indentation/phase in resolvers
     // This ensures that when a user action is resolved, the log context can be restored
-    if (result.newState.actionRequired && !result.newState.actionRequired.logSource) {
+    const actionReq = result.newState.actionRequired as any;
+    if (actionReq && !actionReq.logSource) {
+        const updatedActionRequired = {
+            ...result.newState.actionRequired,
+            logSource: currentLogContext.logSource,
+            logPhase: currentLogContext.logPhase,
+            logIndentLevel: currentLogContext.logIndentLevel,
+        } as any;
         result = {
             ...result,
             newState: {
                 ...result.newState,
-                actionRequired: {
-                    ...result.newState.actionRequired,
-                    logSource: currentLogContext.logSource,
-                    logPhase: currentLogContext.logPhase,
-                    logIndentLevel: currentLogContext.logIndentLevel,
-                }
+                actionRequired: updatedActionRequired,
             }
         };
     }
@@ -799,14 +801,16 @@ export function executeCustomEffect(
                 result = { newState: matchState };
             }
 
-            // NEW: For 'optional' conditionals, create a prompt instead of executing immediately
-            if (effectDef.conditional.type === 'optional') {
+            // NEW: For effects with optional params, create a prompt instead of executing immediately
+            // Note: 'optional' is a property on EffectParams (e.g., DrawEffectParams.optional), not on conditional.type
+            const params = effectDef.params as any;
+            if (params && params.optional) {
                 let promptState = { ...newState };
                 promptState.actionRequired = {
                     type: 'prompt_optional_effect',
                     actor: context.cardOwner,
                     sourceCardId: card.id,
-                    effectDef: effectDef.conditional.thenEffect,
+                    effectDef: effectDef.conditional?.thenEffect,
                     laneIndex: laneIndex,
                     // CRITICAL: Preserve the target card ID for useCardFromPreviousEffect
                     savedTargetCardId: newState.lastCustomEffectTargetCardId,
@@ -833,17 +837,17 @@ export function executeCustomEffect(
         }
     }
 
-    // CRITICAL: Propagate animationRequests to _pendingAnimationRequests on state
+    // CRITICAL: Propagate animationRequests to _pendingAnimations on state
     // This ensures flip/delete/etc animations from executors are not lost
     // IMPORTANT: Clear animationRequests from result to prevent double-adding by effectExecutor
     if (result.animationRequests && result.animationRequests.length > 0) {
-        const existingRequests = (result.newState as any)._pendingAnimationRequests || [];
+        const existingRequests = (result.newState as any)._pendingAnimations || [];
         result = {
             newState: {
                 ...result.newState,
-                _pendingAnimationRequests: [...existingRequests, ...result.animationRequests]
+                _pendingAnimations: [...existingRequests, ...result.animationRequests]
             }
-            // NOTE: animationRequests intentionally NOT included - already in _pendingAnimationRequests
+            // NOTE: animationRequests intentionally NOT included - already in _pendingAnimations
         };
     }
 

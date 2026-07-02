@@ -183,6 +183,8 @@ export const ChoiceEffectEditor: React.FC<ChoiceEffectEditorProps> = ({ params, 
     const getActionLabel = (action: EffectActionType): string => {
         const labels: Record<EffectActionType, string> = {
             draw: 'Draw Cards',
+            refresh: 'Refresh Hand',
+            mutual_draw: 'Mutual Draw',
             flip: 'Flip Cards',
             shift: 'Shift Card',
             delete: 'Delete Cards',
@@ -195,6 +197,19 @@ export const ChoiceEffectEditor: React.FC<ChoiceEffectEditorProps> = ({ params, 
             give: 'Give Cards',
             take: 'Take from Hand',
             choice: 'Either/Or Choice',
+            passive_rule: 'Passive Rule',
+            value_modifier: 'Value Modifier',
+            block_compile: 'Block Compile',
+            delete_all_in_lane: 'Delete All in Lane',
+            shuffle_trash: 'Shuffle Trash',
+            shuffle_deck: 'Shuffle Deck',
+            state_number: 'State a Number',
+            state_protocol: 'State a Protocol',
+            swap_stacks: 'Swap Stacks',
+            copy_opponent_middle: 'Copy Opponent Middle',
+            auto_compile: 'Auto Compile',
+            redirect_return_to_deck: 'Redirect Return to Deck',
+            card_property: 'Card Property',
         };
         return labels[action] || action;
     };

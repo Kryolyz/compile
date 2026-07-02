@@ -1,14 +1,14 @@
 # AI Onboarding Guide for COMPILE Card Game
 
 ## WICHTIG: Zuerst diese Dokumente lesen!
-
+## WICHTIG: Zuerst diese Dokumente lesen!
 Bevor du mit der Arbeit am Code beginnst, lies unbedingt diese Dateien in der folgenden Reihenfolge:
 
-1. **`beschreibung.txt`** - Überblick über das Projekt und seine Struktur
-2. **`COMP-MN01_Rulesheet_Updated.pdf`** - Offizielle Spielregeln mit Bildern und Beispielen
-3. **`game_rules.md`** - Detaillierte Spielregeln in Textform
-4. **`CUSTOM_PROTOCOL_CREATOR.md`** - Anleitung zum Erstellen neuer Protokolle
-5. **`CARD_TARGETING_RULES.md`** - Regeln für Card Targeting und Filter
+1. **`docs/onboarding/beschreibung.txt`** - Überblick über das Projekt und seine Struktur
+2. **`COMP-MN01_Rulesheet_Updated.pdf`** - Offizielle Spielregeln mit Bildern und Beispielen (falls vorhanden)
+3. **`docs/onboarding/game_rules.md`** - Detaillierte Spielregeln in Textform
+4. **`CUSTOM_PROTOCOL_CREATOR.md`** - Anleitung zum Erstellen neuer Protokolle (falls vorhanden)
+5. **`docs/onboarding/CARD_TARGETING_RULES.md`** - Regeln für Card Targeting und Filter
 
 Diese Dokumente sind essentiell um zu verstehen:
 - Wie das Spiel funktioniert (Compile-Bedingungen, Turn Order, Card Anatomy)

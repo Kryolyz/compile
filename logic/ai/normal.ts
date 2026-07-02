@@ -3019,7 +3019,10 @@ const handleRequiredAction = (state: GameState, action: ActionRequired): AIActio
         // Unity-4: "Reveal deck, draw all Unity cards, shuffle"
         // Auto-confirm - all matching cards are drawn automatically
         case 'reveal_deck_draw_protocol': {
-            return { type: 'confirmRevealDeckDrawProtocol' };
+            const { revealedCards } = action as any;
+            // Auto-select all revealed cards (or empty array if none)
+            const selectedIndices = revealedCards ? revealedCards.map((_: any, index: number) => index) : [];
+            return { type: 'confirmRevealDeckDrawProtocol', selectedIndices };
         }
 
         case 'custom_choice': {

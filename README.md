@@ -123,6 +123,33 @@ compile/
 
 ---
 
+## 📚 Documentation
+
+All project documentation has been organized into dedicated folders:
+
+### `/docs/onboarding/` - Essential Reading
+Start here if you're new to the project:
+- **AI_ONBOARDING.md** - Guide for AI assistants working on the code
+- **beschreibung.txt** - Original game rules description (German)
+- **GAME_RULES.md** - Detailed game rules and mechanics
+- **CARD_TARGETING_RULES.md** - Card targeting documentation
+- **IDEA.md** - Project idea and notes
+
+### `/docs/plans/` - Development Plans & Technical Docs
+Technical planning documents and system documentation:
+- **ANIMATION_SYSTEM_PLAN.md** - Animation system redesign plan
+- **CSS_REFACTORING_PLAN.md** - CSS refactoring strategy
+- **CSS_STRUCTURE.md** - Current CSS structure documentation
+- **MAIN2_PROTOCOL_PLAN.md** - Main2 protocol implementation plan
+- **ANIMATION_TODOS.md** - Animation system TODOs
+- **LOGGING_SYSTEM.md** - Logging system documentation
+
+### Root Documentation
+- **README.md** (this file) - Project overview and quick start
+- **CLAUDE.md** - AI coding assistant instructions and coding standards
+
+---
+
 ## 🙌 Credits
 
 - **Original game**: [Compile: Main 1 & 2](https://boardgamegeek.com/boardgame/406652/compile-main-1) by **Michael Yang** / [Just Gravy](https://justgravyllc.com/)

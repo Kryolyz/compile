@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { EffectDefinition, EffectActionType } from '../../types/customProtocol';
+import { EffectDefinition, EffectActionType, AutoCompileEffectParams } from '../../types/customProtocol';
 import { v4 as uuidv4 } from 'uuid';
 import { DrawEffectEditor } from './EffectParameterEditors/DrawEffectEditor';
 import { RefreshEffectEditor } from './EffectParameterEditors/RefreshEffectEditor';
@@ -317,7 +317,7 @@ export const EffectEditor: React.FC<EffectEditorProps> = ({ effect, onChange, re
                         <label>
                             Conditional Type
                             <select
-                                value={effectToRender.params.protocolCountConditional?.type || 'unique_protocols_on_field'}
+                                value={(effectToRender.params as AutoCompileEffectParams).protocolCountConditional?.type || 'unique_protocols_on_field'}
                                 onChange={e => {
                                     const condType = e.target.value;
                                     if (condType === 'same_protocol_count_on_field') {
@@ -334,7 +334,7 @@ export const EffectEditor: React.FC<EffectEditorProps> = ({ effect, onChange, re
                                             ...effectToRender.params,
                                             protocolCountConditional: {
                                                 type: 'unique_protocols_on_field',
-                                                threshold: effectToRender.params.protocolCountConditional?.threshold || 6
+                                                threshold: (effectToRender.params as AutoCompileEffectParams).protocolCountConditional?.threshold || 6
                                             }
                                         });
                                     }
@@ -367,12 +367,12 @@ export const EffectEditor: React.FC<EffectEditorProps> = ({ effect, onChange, re
                             </select>
                         </label>
 
-                        {effectToRender.params.protocolCountConditional?.type === 'same_protocol_count_on_field' && (
-                            <>
+                        {((effectToRender.params as AutoCompileEffectParams).protocolCountConditional?.type === 'same_protocol_count_on_field') && (
+                            <div>
                                 <label style={{ marginTop: '10px' }}>
                                     <input
                                         type="checkbox"
-                                        checked={effectToRender.params.deleteAllInLane || false}
+                                        checked={((effectToRender.params as AutoCompileEffectParams).deleteAllInLane || false)}
                                         onChange={e => onChange({
                                             ...effectToRender.params,
                                             deleteAllInLane: e.target.checked
@@ -383,7 +383,7 @@ export const EffectEditor: React.FC<EffectEditorProps> = ({ effect, onChange, re
                                 <p className="param-hint" style={{ marginTop: '10px' }}>
                                     "If there are X or more face-up [Protocol] cards in the field, compile this protocol."
                                 </p>
-                            </>
+                            </div>
                         )}
 
                         {effectToRender.params.protocolCountConditional?.type !== 'same_protocol_count_on_field' && (

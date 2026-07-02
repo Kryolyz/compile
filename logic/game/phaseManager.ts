@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GameState, Player, GamePhase, PlayedCard, ActionRequired, EffectContext } from '../../types';
+import { GameState, Player, GamePhase, PlayedCard, ActionRequired, EffectContext, AnimationRequest } from '../../types';
 import { executeStartPhaseEffects, executeEndPhaseEffects, executeOnPlayEffect } from '../effectExecutor';
 import { calculateCompilableLanes, recalculateAllLaneValues } from './stateManager';
 import { findCardOnBoard, isCardUncovered, isCardPhysicallyUncovered, internalShiftCard, handleUncoverEffect } from './helpers/actionUtils';

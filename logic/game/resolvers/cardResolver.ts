@@ -956,20 +956,20 @@ export const resolveActionWithCard = (
                             ];
                         } else {
                             // No current actionRequired - execute followUpEffect immediately
-                            const sourceCardForFollowUp = findCardOnBoard(stateAfterTriggers, originalAction.sourceCardId);
-                            const opponent: Player = originalAction.actor === 'player' ? 'opponent' : 'player';
+                                    const sourceCardForFollowUp = findCardOnBoard(stateAfterTriggers, originalAction.sourceCardId);
+                                    const opponent: Player = originalAction.actor === 'player' ? 'opponent' : 'player';
 
-                            if (sourceCardForFollowUp) {
-                                const followUpLaneIndex = stateAfterTriggers[sourceCardForFollowUp.owner].lanes.findIndex(
-                                    l => l.some(c => c.id === originalAction.sourceCardId)
-                                );
-                                const context: EffectContext = {
-                                    cardOwner: originalAction.actor,
-                                    actor: originalAction.actor,
-                                    currentTurn: stateAfterTriggers.turn,
-                                    opponent,
-                                    triggerType: 'start' as const
-                                };
+                                    if (sourceCardForFollowUp) {
+                                        const followUpLaneIndex = stateAfterTriggers[sourceCardForFollowUp.owner].lanes.findIndex(
+                                            l => l.some(c => c.id === originalAction.sourceCardId)
+                                        );
+                                        const context: EffectContext = {
+                                            cardOwner: originalAction.actor,
+                                            actor: originalAction.actor,
+                                            currentTurn: stateAfterTriggers.turn,
+                                            opponent,
+                                            triggerType: 'start'
+                                        };
 
                                 // CRITICAL: Restore log context for followUpEffect from originalAction
                                 // This ensures Death-1's delete_self uses Death-1's context, not Speed-3's
